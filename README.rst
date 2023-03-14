@@ -15,11 +15,11 @@ Installation
 
 For a high-level guide to Unix-like systems, inc. Mac OS X and Ubuntu, see:
 
-    INSTALL.Unix
+    <INSTALL.Unix.md>_
 
 For a high-level guide to Microsoft Windows, see:
 
-    INSTALL.Windows
+    <INSTALL.Windows.md>_
 
 Follow the proper instructions to get CouchDB installed on your system.
 
