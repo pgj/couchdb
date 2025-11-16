@@ -333,4 +333,49 @@ defmodule SearchTest do
       } = resp
     end)
   end
+
+  test "resilience to index churn" do
+    # it should be greater than `max_indexes_open` for Clouseau
+    db_count = 75
+    per_db_iterations = 10
+
+    db_names = Enum.map(1..db_count, fn _ ->
+      name = random_db_name()
+      {:ok, _} = create_db(name)
+      create_search_docs(name)
+      create_ddoc(name)
+      on_exit(fn -> delete_db(name) end)
+      name
+    end)
+
+    db_names
+    |> Task.async_stream(fn name ->
+      Enum.map(1..per_db_iterations, fn _ ->
+	Couch.get(
+          "/#{name}/_design/inventory/_search/fruits",
+          query: %{
+	    q: "*:*",
+	    drilldown: :jiffy.encode(["place", "kitchen"]),
+	    include_docs: true
+	  }
+	)
+      end)
+    end,
+      max_concurrency: db_count,
+      timeout: 15_000,
+      on_timeout: :kill_task)
+    |> Enum.to_list
+    |> Enum.map(fn result ->
+      case result do
+	{:ok, responses} -> responses
+	_ -> flunk "Invalid result received."
+      end
+    end)
+    |> Enum.concat
+    |> Enum.each(fn response ->
+      assert_on_status(response, 200, "Search request unexpectedly failed.")
+      ids = get_items(response)
+      assert Enum.sort(ids) == Enum.sort(["apple", "banana", "carrot"])
+    end)
+  end
 end

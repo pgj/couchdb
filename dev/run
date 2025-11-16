@@ -588,6 +588,7 @@ def generate_default_clouseau_ini(path):
     with open(path, "w") as handle:
         handle.write(
             """[clouseau]
+max_indexes_open=50
 """
         )
 
